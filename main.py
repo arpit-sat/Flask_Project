@@ -57,9 +57,17 @@ def cleanup_browser(browser):
 
 @app.route("/geturl/<string:browser>", methods=['GET'])
 def geturl_browser(browser):
-    global host, endpoint
     if browser == 'chrome':
-        os.system("taskkill /IM chrome.exe /F")
+        conn = sqlite3.connect(chrome_path, check_same_thread=False)
+        c = conn.cursor()
+        c.execute('SELECT url FROM urls where last_visit_time=(select max(last_visit_time) from urls)')
+        web_site = c.fetchall()
+        conn.close()
+        return jsonify(
+            last_visited_url=web_site,
+            category="success",
+            status=200
+        )
     elif browser == 'firefox':
         conn = sqlite3.connect(firefox_path, check_same_thread=False)
         c = conn.cursor()
@@ -68,8 +76,9 @@ def geturl_browser(browser):
         active_website = websites_list[-1]
         host = active_website[1]
         endpoint = active_website[2]
-    return jsonify(
-        last_visited_url=host + endpoint,
-        category="success",
-        status=200
-    )
+        conn.close()
+        return jsonify(
+            last_visited_url=host + endpoint,
+            category="success",
+            status=200
+        )
